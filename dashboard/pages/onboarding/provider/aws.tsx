@@ -1,6 +1,7 @@
-import Head from 'next/head';
-import { useRouter } from 'next/router';
 import { useState } from 'react';
+import Head from 'next/head';
+
+import { configureAccount } from '@utils/cloudAccountHelpers';
 
 import { allProviders } from '../../../utils/providerHelper';
 
@@ -11,26 +12,15 @@ import OnboardingWizardLayout, {
 import PurplinCloud from '../../../components/onboarding-wizard/PurplinCloud';
 import CredentialsButton from '../../../components/onboarding-wizard/CredentialsButton';
 import AwsAccountDetails from '../../../components/account-details/AwsAccountDetails';
-import { CloudAccount } from '../../../components/cloud-account/hooks/useCloudAccounts/useCloudAccount';
+import Toast from '../../../components/toast/Toast';
+import useToast from '../../../components/toast/hooks/useToast';
 
 export default function AWSCredentials() {
   const provider = allProviders.AWS;
 
-  const [cloudAccountData, setCloudAccountData] = useState<CloudAccount>({
-    credentials: {
-      path: '',
-      profile: '',
-      source: ''
-    },
-    name: '',
-    provider: 'aws'
-  });
+  const { toast, setToast, dismissToast } = useToast();
 
-  const router = useRouter();
-
-  const handleNext = () => {
-    // TODO: (onboarding-wizard) complete form inputs, validation, submission and navigation
-  };
+  const [hasError, setHasError] = useState(false);
 
   return (
     <div>
@@ -54,7 +44,7 @@ export default function AWSCredentials() {
               Read our guide on{' '}
               <a
                 target="_blank"
-                href="https://docs.komiser.io/docs/cloud-providers/aws"
+                href="https://docs.komiser.io/configuration/cloud-providers/aws"
                 className="text-komiser-600"
                 rel="noreferrer"
               >
@@ -62,11 +52,14 @@ export default function AWSCredentials() {
               </a>
             </div>
           </div>
-          <AwsAccountDetails
-            cloudAccountData={cloudAccountData}
-            setCloudAccountData={setCloudAccountData}
-          />
-          <CredentialsButton handleNext={handleNext} />
+          <form
+            onSubmit={event =>
+              configureAccount(event, provider, setToast, setHasError)
+            }
+          >
+            <AwsAccountDetails hasError={hasError} />
+            <CredentialsButton />
+          </form>
         </LeftSideLayout>
 
         <RightSideLayout>
@@ -75,6 +68,9 @@ export default function AWSCredentials() {
           </div>
         </RightSideLayout>
       </OnboardingWizardLayout>
+
+      {/* Toast component */}
+      {toast && <Toast {...toast} dismissToast={dismissToast} />}
     </div>
   );
 }

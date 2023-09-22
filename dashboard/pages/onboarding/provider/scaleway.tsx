@@ -1,20 +1,19 @@
 import { useState } from 'react';
 import Head from 'next/head';
-import KubernetesAccountDetails from '@components/account-details/KubernetesAccountDetails';
+
 import { configureAccount } from '@utils/cloudAccountHelpers';
 import useToast from '@components/toast/hooks/useToast';
-
-import { allProviders } from '../../../utils/providerHelper';
-
+import ScalewayAccountDetails from '@components/account-details/ScalewayAccountDetails';
 import OnboardingWizardLayout, {
   LeftSideLayout,
   RightSideLayout
 } from '../../../components/onboarding-wizard/OnboardingWizardLayout';
 import PurplinCloud from '../../../components/onboarding-wizard/PurplinCloud';
 import CredentialsButton from '../../../components/onboarding-wizard/CredentialsButton';
+import { allProviders } from '../../../utils/providerHelper';
 
-export default function KubernetesCredentials() {
-  const provider = allProviders.KUBERNETES;
+export default function ScalewayCredentials() {
+  const provider = allProviders.TENCENT;
 
   const { setToast } = useToast();
 
@@ -23,30 +22,30 @@ export default function KubernetesCredentials() {
   return (
     <div>
       <Head>
-        <title>Setup Kubernetes - Komiser</title>
-        <meta name="description" content="Setup Kubernetes - Komiser" />
+        <title>Setup Scaleway - Komiser</title>
+        <meta name="description" content="Setup Scaleway - Komiser" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <OnboardingWizardLayout>
         <LeftSideLayout
-          title="Configure your Kubernetes account"
+          title="Configure your Scaleway account"
           progressBarWidth="45%"
         >
           <div className="leading-6 text-gray-900/60">
             <div className="font-normal">
-              Kubernetes, also known as K8s, is an open-source system for
-              automating deployment, scaling, and management of containerized
-              applications.
+              Scaleway is a cloud infrastructure provider that offers a range of
+              cloud resources, including bare metal servers, virtual private
+              servers, object storage, and more
             </div>
             <div>
               Read our guide on{' '}
               <a
                 target="_blank"
-                href="https://docs.komiser.io/docs/cloud-providers/kubernetes"
+                href="https://docs.komiser.io/configuration/cloud-providers/scaleway"
                 className="text-komiser-600"
                 rel="noreferrer"
               >
-                adding a Kubernetes account to Komiser.
+                adding a Scaleway account to Komiser.
               </a>
             </div>
           </div>
@@ -56,7 +55,7 @@ export default function KubernetesCredentials() {
               configureAccount(event, provider, setToast, setHasError)
             }
           >
-            <KubernetesAccountDetails hasError={hasError} />
+            <ScalewayAccountDetails hasError={hasError} />
             <CredentialsButton />
           </form>
         </LeftSideLayout>

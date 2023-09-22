@@ -1,23 +1,24 @@
+import { useState } from 'react';
 import Head from 'next/head';
+import { configureAccount } from '@utils/cloudAccountHelpers';
+import useToast from '@components/toast/hooks/useToast';
+import CivoAccountDetails from '@components/account-details/CivoAccountDetails';
 
 import { allProviders } from '../../../utils/providerHelper';
-
-import RecordCircleIcon from '../../../components/icons/RecordCircleIcon';
 
 import OnboardingWizardLayout, {
   LeftSideLayout,
   RightSideLayout
 } from '../../../components/onboarding-wizard/OnboardingWizardLayout';
 import PurplinCloud from '../../../components/onboarding-wizard/PurplinCloud';
-import LabelledInput from '../../../components/onboarding-wizard/LabelledInput';
 import CredentialsButton from '../../../components/onboarding-wizard/CredentialsButton';
 
 export default function CivoCredentials() {
   const provider = allProviders.CIVO;
 
-  const handleNext = () => {
-    // TODO: (onboarding-wizard) complete form inputs, validation, submission and navigation
-  };
+  const { setToast } = useToast();
+
+  const [hasError, setHasError] = useState(false);
 
   return (
     <div>
@@ -49,34 +50,14 @@ export default function CivoCredentials() {
             </div>
           </div>
 
-          <div className="flex flex-col space-y-4 py-10">
-            <LabelledInput
-              type="text"
-              id="account-name"
-              label="Account name"
-              placeholder="my-civo-account"
-            />
-
-            <div className="flex flex-col space-y-[0.2] rounded-md bg-komiser-100 p-5">
-              <LabelledInput
-                type="text"
-                id="source"
-                label="Source"
-                value="API Token"
-                disabled={true}
-                icon={<RecordCircleIcon />}
-              />
-              <LabelledInput
-                type="text"
-                id="api-token"
-                label="API token"
-                subLabel="An API key that is unique to your account"
-                placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
-              />
-            </div>
-          </div>
-
-          <CredentialsButton handleNext={handleNext} />
+          <form
+            onSubmit={event =>
+              configureAccount(event, provider, setToast, setHasError)
+            }
+          >
+            <CivoAccountDetails hasError={hasError} />
+            <CredentialsButton />
+          </form>
         </LeftSideLayout>
 
         <RightSideLayout>

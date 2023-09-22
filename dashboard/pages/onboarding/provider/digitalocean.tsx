@@ -1,23 +1,24 @@
+import { useState } from 'react';
 import Head from 'next/head';
+import { configureAccount } from '@utils/cloudAccountHelpers';
+import DigitalOceanAccountDetails from '@components/account-details/DigitalOceanAccountDetails';
+import useToast from '@components/toast/hooks/useToast';
 
 import { allProviders } from '../../../utils/providerHelper';
-
-import RecordCircleIcon from '../../../components/icons/RecordCircleIcon';
 
 import OnboardingWizardLayout, {
   LeftSideLayout,
   RightSideLayout
 } from '../../../components/onboarding-wizard/OnboardingWizardLayout';
-import PurplinCloud from '../../../components/onboarding-wizard/PurplinCloud';
-import LabelledInput from '../../../components/onboarding-wizard/LabelledInput';
 import CredentialsButton from '../../../components/onboarding-wizard/CredentialsButton';
+import PurplinCloud from '../../../components/onboarding-wizard/PurplinCloud';
 
 export default function DigitalOceanCredentials() {
   const provider = allProviders.DIGITAL_OCEAN;
 
-  const handleNext = () => {
-    // TODO: (onboarding-wizard) complete form inputs, validation, submission and navigation
-  };
+  const { setToast } = useToast();
+
+  const [hasError, setHasError] = useState(false);
 
   return (
     <div>
@@ -40,7 +41,7 @@ export default function DigitalOceanCredentials() {
               Read our guide on{' '}
               <a
                 target="_blank"
-                href="https://docs.komiser.io/docs/cloud-providers/digital-ocean"
+                href="https://docs.komiser.io/configuration/cloud-providers/digital-ocean"
                 className="text-komiser-600"
                 rel="noreferrer"
               >
@@ -49,34 +50,14 @@ export default function DigitalOceanCredentials() {
             </div>
           </div>
 
-          <div className="flex flex-col space-y-4 py-10">
-            <LabelledInput
-              type="text"
-              id="account-name"
-              label="Account name"
-              placeholder="my-digitalocean-account"
-            />
-
-            <div className="flex flex-col space-y-[0.2] rounded-md bg-komiser-100 p-5">
-              <LabelledInput
-                type="text"
-                id="source"
-                label="Source"
-                value="Personal Access Token"
-                disabled={true}
-                icon={<RecordCircleIcon />}
-              />
-              <LabelledInput
-                type="text"
-                id="personal-access-token"
-                label="Personal access token"
-                subLabel="Personal access tokens function like ordinary OAuth access tokens"
-                placeholder="abcd1234efgh5678ijklmnop90qrstuv"
-              />
-            </div>
-          </div>
-
-          <CredentialsButton handleNext={handleNext} />
+          <form
+            onSubmit={event =>
+              configureAccount(event, provider, setToast, setHasError)
+            }
+          >
+            <DigitalOceanAccountDetails hasError={hasError} />
+            <CredentialsButton />
+          </form>
         </LeftSideLayout>
 
         <RightSideLayout>

@@ -6,6 +6,7 @@ import AlertCircleIconFilled from '../icons/AlertCircleIconFilled';
 
 interface InputFileSelectProps {
   id: string;
+  name?: string;
   value?: any;
   type: string;
   label: string;
@@ -22,6 +23,7 @@ interface InputFileSelectProps {
 
 function InputFileSelect({
   id,
+  name,
   icon,
   type,
   label,
@@ -57,6 +59,7 @@ function InputFileSelect({
 
         <input
           id={id}
+          name={name ?? id}
           type={type}
           value={value}
           disabled={disabled}
