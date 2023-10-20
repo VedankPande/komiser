@@ -2,9 +2,7 @@ package rds
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"strconv"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -43,12 +41,13 @@ func Instances(ctx context.Context, client providers.ProviderClient) ([]models.R
 				})
 			}
 
-			var _instanceName string
-			if instance.DBName == nil {
-				_instanceName = *instance.DBInstanceIdentifier
-			} else {
-				_instanceName = *instance.DBName
-			}
+			//get deployment type
+			var _deploymentType = GetDeploymentType(instance)
+			//get instance name
+			var _instanceName = GetInstanceName(instance)
+
+			//get engine and db edition
+			engineInfo := SplitEngine(*instance.Engine, "-")
 
 			startOfMonth := utils.BeginningOfMonth(time.Now())
 			hourlyUsage := 0
@@ -58,55 +57,58 @@ func Instances(ctx context.Context, client providers.ProviderClient) ([]models.R
 				hourlyUsage = int(time.Since(*instance.InstanceCreateTime).Hours())
 			}
 
+			//define filter
+			filter := []types.Filter{
+				{
+					Field: aws.String("instanceType"),
+					Value: aws.String(*instance.DBInstanceClass),
+					Type:  types.FilterTypeTermMatch,
+				},
+				{
+					Field: aws.String("regionCode"),
+					Value: aws.String(client.AWSClient.Region),
+					Type:  types.FilterTypeTermMatch,
+				},
+				{
+					Field: aws.String("databaseEngine"),
+					Value: aws.String(DBEngineMap[engineInfo["engine"]]),
+					Type:  types.FilterTypeTermMatch,
+				},
+				{
+					Field: aws.String("deploymentOption"),
+					Value: aws.String(_deploymentType),
+					Type:  types.FilterTypeTermMatch,
+				},
+			}
+
+			//for oracle and sqlserver instances, include license and edition in the filter
+			if engineInfo["engine"] == "oracle" || engineInfo["engine"] == "sqlserver" {
+				filter = append(filter, []types.Filter{{
+					Field: aws.String("licenseModel"),
+					Value: aws.String(DBLicenseInfo[*instance.LicenseModel]),
+					Type:  types.FilterTypeTermMatch,
+				}, {
+					Field: aws.String("databaseEdition"),
+					Value: aws.String(DBEditionInfo[engineInfo["edition"]]),
+					Type:  types.FilterTypeTermMatch,
+				}}...)
+
+			}
+
+			for _, filterItem := range filter {
+
+				log.Infof("%v: %v", *filterItem.Field, *filterItem.Value)
+			}
 			pricingOutput, err := pricingClient.GetProducts(ctx, &pricing.GetProductsInput{
 				ServiceCode: aws.String("AmazonRDS"),
-				Filters: []types.Filter{
-					{
-						Field: aws.String("instanceType"),
-						Value: aws.String(*instance.DBInstanceClass),
-						Type:  types.FilterTypeTermMatch,
-					},
-					{
-						Field: aws.String("regionCode"),
-						Value: aws.String(client.AWSClient.Region),
-						Type:  types.FilterTypeTermMatch,
-					},
-					{
-						Field: aws.String("databaseEngine"),
-						Value: aws.String(*instance.Engine),
-						Type:  types.FilterTypeTermMatch,
-					},
-				},
-				MaxResults: aws.Int32(1),
+				Filters:     filter,
+				MaxResults:  aws.Int32(1),
 			})
 			if err != nil {
-				log.Warnf("Couldn't fetch invocations metric for %s", _instanceName)
+				log.Warnf("Couldn't fetch invocations metric for %s: %v", _instanceName, err)
 			}
 
-			hourlyCost := 0.0
-			if pricingOutput != nil && len(pricingOutput.PriceList) > 0 {
-				log.Infof(`Raw pricingOutput.PriceList[0] : %s`, pricingOutput.PriceList[0])
-
-				pricingResult := models.PricingResult{}
-				err := json.Unmarshal([]byte(pricingOutput.PriceList[0]), &pricingResult)
-				if err != nil {
-					log.Fatalf("Failed to unmarshal JSON: %v", err)
-				}
-
-				for _, onDemand := range pricingResult.Terms.OnDemand {
-					for _, priceDimension := range onDemand.PriceDimensions {
-						hourlyCost, err = strconv.ParseFloat(priceDimension.PricePerUnit.USD, 64)
-						if err != nil {
-							log.Fatalf("Failed to parse hourly cost: %v", err)
-						}
-						break
-					}
-					break
-				}
-
-				//log.Printf("Hourly cost RDS: %f", hourlyCost)
-			}
-
+			hourlyCost := GetHourlyCost(pricingOutput)
 			monthlyCost := float64(hourlyUsage) * hourlyCost
 
 			resources = append(resources, models.Resource{
